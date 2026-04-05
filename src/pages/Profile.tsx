@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Save, Loader2, User } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAppContext } from '../context/AppContext';
@@ -9,7 +9,9 @@ export const Profile = () => {
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -31,13 +33,51 @@ export const Profile = () => {
     if (user.email) fetchProfile();
   }, [user.email]);
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      addToast('Ukuran foto maksimal 2MB.', 'error');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      addToast('File harus berupa gambar.', 'error');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${user.email?.replace(/[@.]/g, '_')}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      setAvatarUrl(urlData.publicUrl);
+      addToast('Foto berhasil diunggah!', 'success');
+    } catch (err: any) {
+      addToast('Gagal mengunggah foto: ' + err.message, 'error');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase
       .from('client_users')
       .update({
         display_name: displayName.trim(),
-        avatar_url: avatarUrl.trim() || null,
+        avatar_url: avatarUrl || null,
       })
       .eq('email', user.email);
 
@@ -49,9 +89,7 @@ export const Profile = () => {
     setSaving(false);
   };
 
-  const avatarSrc = avatarUrl.trim()
-    ? avatarUrl
-    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`;
+  const avatarSrc = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`;
 
   if (loading) {
     return (
@@ -74,7 +112,7 @@ export const Profile = () => {
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
 
-          {/* Avatar preview */}
+          {/* Avatar upload */}
           <div className="flex items-center gap-5">
             <div className="relative shrink-0">
               <img
@@ -86,13 +124,36 @@ export const Profile = () => {
                     `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`;
                 }}
               />
-              <div className="absolute bottom-0 right-0 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
-                <Camera className="w-3 h-3 text-white" />
-              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute bottom-0 right-0 w-7 h-7 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center transition-colors disabled:opacity-60"
+                title="Ganti foto"
+              >
+                {uploading
+                  ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                  : <Camera className="w-3.5 h-3.5 text-white" />
+                }
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
             <div>
               <p className="text-sm font-medium text-slate-800">{displayName || user.name}</p>
               <p className="text-xs text-slate-400 mt-0.5">{user.email}</p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="text-xs text-indigo-600 hover:text-indigo-700 mt-1.5 disabled:opacity-50"
+              >
+                {uploading ? 'Mengunggah...' : 'Ganti foto profil'}
+              </button>
+              <p className="text-[11px] text-slate-400 mt-0.5">JPG, PNG, GIF — maks. 2MB</p>
             </div>
           </div>
 
@@ -111,26 +172,7 @@ export const Profile = () => {
             />
           </div>
 
-          {/* Avatar URL */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-              <Camera className="w-3.5 h-3.5" />
-              URL Foto Profil
-              <span className="text-slate-400 font-normal">(opsional)</span>
-            </label>
-            <input
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/foto.jpg"
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-            />
-            <p className="text-xs text-slate-400">
-              Masukkan URL gambar publik. Kosongkan untuk pakai avatar default.
-            </p>
-          </div>
-
-          {/* Email (read-only) */}
+          {/* Email read-only */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">Email</label>
             <input
@@ -142,17 +184,16 @@ export const Profile = () => {
             <p className="text-xs text-slate-400">Email tidak dapat diubah.</p>
           </div>
 
-          {/* Save button */}
+          {/* Save */}
           <button
             onClick={handleSave}
             disabled={saving || !displayName.trim()}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {saving ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>
-            ) : (
-              <><Save className="w-4 h-4" /> Simpan Perubahan</>
-            )}
+            {saving
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>
+              : <><Save className="w-4 h-4" /> Simpan Perubahan</>
+            }
           </button>
 
         </CardContent>
