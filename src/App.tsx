@@ -13,6 +13,7 @@ import { TimeSeries } from './pages/TimeSeries';
 import { FAQ } from './pages/FAQ';
 import { CommunicationHub } from './pages/CommunicationHub';
 import { EngagementAdmin } from './pages/EngagementAdmin';
+import { Profile } from './pages/Profile';
 import Login from './pages/Login';
 import { supabase } from './supabase';
 
@@ -53,7 +54,6 @@ function App() {
     init();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Abaikan event yang datang sebelum init() selesai
       if (!listenerActive) return;
       setSession(session);
     });
@@ -95,6 +95,7 @@ function App() {
             <Route path="faq-databook" element={<FAQ />} />
             <Route path="communication" element={<CommunicationHub />} />
             <Route path="admin" element={<EngagementAdmin />} />
+            <Route path="profile" element={<Profile />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
