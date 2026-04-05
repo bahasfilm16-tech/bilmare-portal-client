@@ -1,17 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  FolderOpen,
-  ListTodo,
-  AlertTriangle,
-  GitCompare,
-  FileEdit,
-  DownloadCloud,
-  History,
-  HelpCircle,
-  MessageSquare,
-  Settings
+import { X,
+  LayoutDashboard, FolderOpen, ListTodo, AlertTriangle,
+  GitCompare, FileEdit, DownloadCloud, History,
+  HelpCircle, MessageSquare, Settings
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 
@@ -29,16 +21,29 @@ const navItems = [
   { path: '/admin', label: 'Engagement & Admin', icon: Settings },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export const Sidebar = ({ onClose }: SidebarProps) => {
   const { gapFindings } = useAppContext();
   const openFindingsCount = gapFindings.filter(f => f.status === 'Open').length;
 
   return (
-    <aside className="w-60 bg-[#f5f5f7] text-slate-700 flex flex-col h-screen sticky top-0 border-r border-black/[0.06]">
+    <aside className="w-60 bg-[#f5f5f7] text-slate-700 flex flex-col h-screen border-r border-black/[0.06]">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-black/[0.06]">
-        <h1 className="text-lg font-semibold text-slate-900 tracking-tight">Bilmare</h1>
-        <p className="text-[11px] text-slate-400 mt-0.5 font-medium tracking-widest uppercase">Client Portal</p>
+      <div className="px-6 py-5 border-b border-black/[0.06] flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900 tracking-tight">Bilmare</h1>
+          <p className="text-[11px] text-slate-400 mt-0.5 font-medium tracking-widest uppercase">Client Portal</p>
+        </div>
+        {/* Close button — hanya tampil di mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-1.5 rounded-lg hover:bg-black/[0.06] text-slate-500"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Nav */}
@@ -51,6 +56,7 @@ export const Sidebar = () => {
                 <NavLink
                   to={item.path}
                   end={item.path === '/'}
+                  onClick={onClose}
                   className={({ isActive }) =>
                     `flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-[13px] font-medium ${
                       isActive

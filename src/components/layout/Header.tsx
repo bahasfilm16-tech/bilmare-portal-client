@@ -1,9 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, ChevronDown, LogOut, User } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, User, Menu } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { supabase } from '../../supabase';
 
-export const Header = () => {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, project } = useAppContext();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -26,54 +30,57 @@ export const Header = () => {
   };
 
   return (
-    <header className="h-14 bg-white/80 backdrop-blur-xl border-b border-black/[0.06] flex items-center justify-between px-6 sticky top-0 z-30">
-      {/* Left: project info */}
-      <div className="flex items-center gap-3">
-        <div>
-          <span className="text-[13px] font-semibold text-slate-900">{project?.name ?? '—'}</span>
-          <span className="text-[11px] text-slate-400 ml-2">{project?.tier ?? ''}</span>
-        </div>
-        {project?.status && (
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-            project.status === 'At Risk'
-              ? 'bg-red-100 text-red-600'
-              : project.status === 'On Track'
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-amber-100 text-amber-700'
-          }`}>
-            {project.status}
+    <header className="h-14 bg-white/80 backdrop-blur-xl border-b border-black/[0.06] flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 gap-3">
+      {/* Left: hamburger + project info */}
+      <div className="flex items-center gap-3 min-w-0">
+        {/* Hamburger — hanya mobile */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-1.5 rounded-lg hover:bg-black/[0.04] text-slate-500 shrink-0"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[13px] font-semibold text-slate-900 truncate max-w-[120px] sm:max-w-[200px] md:max-w-none">
+            {project?.name ?? '—'}
           </span>
-        )}
+          <span className="text-[11px] text-slate-400 hidden sm:inline">{project?.tier ?? ''}</span>
+          {project?.status && (
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 hidden sm:inline ${
+              project.status === 'At Risk'
+                ? 'bg-red-100 text-red-600'
+                : project.status === 'On Track'
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-amber-100 text-amber-700'
+            }`}>
+              {project.status}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Right: search + bell + user */}
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="pl-8 pr-4 py-1.5 bg-black/[0.04] rounded-full text-[13px] text-slate-700 placeholder-slate-400 outline-none focus:bg-black/[0.07] transition-all w-48"
-          />
-        </div>
-
-        <button className="relative text-slate-400 hover:text-slate-600 transition-colors">
-          <Bell className="w-4.5 h-4.5" />
-          <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+      {/* Right: bell + user */}
+      <div className="flex items-center gap-2 md:gap-4 shrink-0">
+        <button className="relative text-slate-400 hover:text-slate-600 transition-colors p-1">
+          <Bell className="w-4 h-4" />
+          <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-red-500 rounded-full" />
         </button>
 
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-2 hover:bg-black/[0.04] px-2 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 hover:bg-black/[0.04] px-2 py-1.5 rounded-lg transition-colors"
           >
             <img
               src={user?.avatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`}
               alt={user?.name ?? 'User'}
-              className="w-7 h-7 rounded-full border border-black/10"
+              className="w-7 h-7 rounded-full border border-black/10 shrink-0"
             />
-            <span className="text-[13px] font-medium text-slate-800">{user?.name ?? '—'}</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <span className="text-[13px] font-medium text-slate-800 hidden sm:inline truncate max-w-[100px]">
+              {user?.name ?? '—'}
+            </span>
+            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform hidden sm:block ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isDropdownOpen && (
