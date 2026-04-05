@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../supabase';
-import { currentUser, bilmareTeam, phases as mockPhases, activities as mockActivities, documents, tasks as mockTasks, gapFindings as mockGapFindings, crossReferenceClaims as mockCrossRef, draftSections as mockDraftSections, draftComments as mockDraftComments, deliverables as mockDeliverables, timeSeriesMetrics as mockTimeSeries, faqs as mockFaqs, users } from '../data/mockData';
 
 interface Toast {
   id: string;
@@ -14,7 +13,7 @@ interface AppState {
   team: any[];
   phases: any[];
   activities: any[];
-  documents: typeof documents;
+  documents: any[];
   tasks: any[];
   gapFindings: any[];
   crossReferenceClaims: any[];
@@ -24,7 +23,7 @@ interface AppState {
   timeSeriesMetrics: any[];
   faqs: any[];
   messages: any[];
-  users: typeof users;
+  users: any[];
   toasts: Toast[];
   loadingMessages: boolean;
   loadingProject: boolean;
@@ -46,7 +45,7 @@ const mapProject = (p: any) => ({
   tier: p.tier_label ?? p.tier ?? 'Tier 1',
   status: p.status ?? 'On Track',
   statusReason: p.status_reason ?? '',
-  deadlineOJK: p.deadline_ojk ? new Date(p.deadline_ojk) : new Date('2025-04-30'),
+  deadlineOJK: p.deadline_ojk ? new Date(p.deadline_ojk) : null,
   rupsDate: p.rups_date ? new Date(p.rups_date) : null,
   currentPhase: p.current_phase ?? 1,
   overallProgress: p.overall_progress ?? 0,
@@ -178,14 +177,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [deliverablesData, setDeliverablesData] = useState<any[]>([]);
   const [timeSeriesData, setTimeSeriesData] = useState<any[]>([]);
   const [faqsData, setFaqsData] = useState<any[]>([]);
+  const [documentsData, setDocumentsData] = useState<any[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
-  const [state, setState] = useState({
-    documents,
-    tasks: mockTasks,
-    users,
-    toasts: [] as Toast[],
-  });
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
     const loadAll = async () => {
@@ -196,40 +191,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (!sessionUser) { setLoadingProject(false); return; }
       setAuthUser(sessionUser);
 
-      const { data: allProjects } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
+      // Cari project via client_users
+      const { data: clientUserRow } = await supabase
+        .from('client_users')
+        .select('project_id')
+        .eq('email', sessionUser.email)
         .single();
 
-      let projectRow = allProjects;
+      let projectRow = null;
+
+      if (clientUserRow?.project_id) {
+        const { data: proj } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', clientUserRow.project_id)
+          .single();
+        projectRow = proj;
+      }
 
       if (!projectRow) {
-        const { data: profile } = await supabase
-          .from('profiles')
+        const { data: proj } = await supabase
+          .from('projects')
           .select('*')
-          .eq('email', sessionUser.email)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .single();
-
-        if (profile?.company) {
-          const { data: clientRow } = await supabase
-            .from('clients')
-            .select('id')
-            .ilike('name', `%${profile.company}%`)
-            .single();
-
-          if (clientRow?.id) {
-            const { data: proj } = await supabase
-              .from('projects')
-              .select('*')
-              .eq('client_id', clientRow.id)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-            projectRow = proj;
-          }
-        }
+        projectRow = proj;
       }
 
       if (projectRow) {
@@ -237,10 +224,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setActiveProjectId(projectRow.id);
         const pid = projectRow.id;
 
-        // Fetch semua data paralel
         const [
           phaseRes, activityRes, findingRes, crossRes,
-          sectionRes, commentRes, deliverableRes, timeRes, faqRes, teamRes
+          sectionRes, commentRes, deliverableRes, timeRes, faqRes, teamRes, docRes
         ] = await Promise.all([
           supabase.from('phases').select('*').eq('project_id', pid).order('id', { ascending: true }),
           supabase.from('activities').select('*').eq('project_id', pid).order('timestamp', { ascending: false }).limit(20),
@@ -252,6 +238,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           supabase.from('time_series_metrics').select('*').eq('project_id', pid),
           supabase.from('faqs').select('*').eq('project_id', pid),
           supabase.from('bilmare_team_members').select('*'),
+          supabase.from('documents').select('*').eq('project_id', pid).order('created_at', { ascending: false }),
         ]);
 
         if (phaseRes.data?.length) setPhasesData(phaseRes.data.map(mapPhase));
@@ -264,6 +251,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (timeRes.data?.length) setTimeSeriesData(timeRes.data.map(mapTimeSeries));
         if (faqRes.data?.length) setFaqsData(faqRes.data.map(mapFaq));
         if (teamRes.data?.length) setTeamData(teamRes.data.map(mapTeamMember));
+        if (docRes.data?.length) setDocumentsData(docRes.data);
       }
 
       setLoadingProject(false);
@@ -313,12 +301,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substr(2, 9);
-    setState(prev => ({ ...prev, toasts: [...prev.toasts, { id, message, type }] }));
+    setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => removeToast(id), 3000);
   };
 
   const removeToast = (id: string) => {
-    setState(prev => ({ ...prev, toasts: prev.toasts.filter(t => t.id !== id) }));
+    setToasts(prev => prev.filter(t => t.id !== id));
   };
 
   const updateFindingStatus = async (id: string, newStatus: string) => {
@@ -328,20 +316,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .eq('id', id);
 
     if (error) { addToast('Gagal update status: ' + error.message, 'error'); return; }
-
     setGapFindingsData(prev => prev.map(f => f.id === id ? { ...f, status: newStatus } : f));
-    addToast(`Status temuan ${id} berhasil diperbarui.`);
+    addToast(`Status temuan berhasil diperbarui.`);
   };
 
   const addDocument = (doc: any) => {
     const newDoc = { id: `d_${Date.now()}`, ...doc, uploadDate: new Date(), status: 'Received', version: 'v1' };
-    setState(prev => ({ ...prev, documents: [newDoc, ...prev.documents] }));
+    setDocumentsData(prev => [newDoc, ...prev]);
     addToast('Dokumen berhasil diunggah.');
   };
 
   const sendMessage = async (text: string) => {
     if (!activeProjectId) return;
-    const senderName = authUser?.email?.split('@')[0] ?? currentUser.name;
+    const senderName = authUser?.email?.split('@')[0] ?? 'Klien';
     const { error } = await supabase.from('messages').insert([{
       project_id: activeProjectId,
       sender: senderName,
@@ -370,35 +357,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const user = authUser ? {
-    ...currentUser,
-    name: authUser.email?.split('@')[0] ?? currentUser.name,
+    id: authUser.id,
+    name: authUser.email?.split('@')[0] ?? 'Klien',
     email: authUser.email,
-  } : currentUser;
-
-  const project = projectData ?? {
-    id: 'mock', name: 'Laporan Tahunan 2024', tier: 'Tier 1',
-    status: 'On Track', statusReason: '',
-    deadlineOJK: new Date('2025-04-30'), rupsDate: new Date('2025-05-15'),
-    currentPhase: 1, overallProgress: 0, contractValue: 0,
-    startDate: new Date(), scope: '', billingMilestones: [], teamIds: [],
+    role: 'client',
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${authUser.email}`,
+  } : {
+    id: '',
+    name: 'Klien',
+    email: '',
+    role: 'client',
+    avatar: '',
   };
+
+  const project = projectData ?? null;
 
   return (
     <AppContext.Provider value={{
-      ...state,
       user,
       project,
-      team: teamData.length > 0 ? teamData : bilmareTeam,
-      phases: phasesData.length > 0 ? phasesData : mockPhases,
-      activities: activitiesData.length > 0 ? activitiesData : mockActivities,
-      gapFindings: gapFindingsData.length > 0 ? gapFindingsData : mockGapFindings,
-      crossReferenceClaims: crossRefData.length > 0 ? crossRefData : mockCrossRef,
-      draftSections: draftSectionsData.length > 0 ? draftSectionsData : mockDraftSections,
-      draftComments: draftCommentsData.length > 0 ? draftCommentsData : mockDraftComments,
-      deliverables: deliverablesData.length > 0 ? deliverablesData : mockDeliverables,
-      timeSeriesMetrics: timeSeriesData.length > 0 ? timeSeriesData : mockTimeSeries,
-      faqs: faqsData.length > 0 ? faqsData : mockFaqs,
+      team: teamData,
+      phases: phasesData,
+      activities: activitiesData,
+      documents: documentsData,
+      tasks: [],
+      gapFindings: gapFindingsData,
+      crossReferenceClaims: crossRefData,
+      draftSections: draftSectionsData,
+      draftComments: draftCommentsData,
+      deliverables: deliverablesData,
+      timeSeriesMetrics: timeSeriesData,
+      faqs: faqsData,
       messages,
+      users: [],
+      toasts,
       loadingMessages,
       loadingProject,
       addToast,
@@ -411,7 +403,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-        {state.toasts.map(toast => (
+        {toasts.map(toast => (
           <div key={toast.id} className={`px-4 py-3 rounded-lg shadow-lg text-white flex items-center gap-2 ${
             toast.type === 'success' ? 'bg-emerald-600' :
             toast.type === 'error' ? 'bg-red-600' : 'bg-blue-600'
