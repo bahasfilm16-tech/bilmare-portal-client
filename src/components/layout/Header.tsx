@@ -30,18 +30,20 @@ export const Header = () => {
       {/* Left: project info */}
       <div className="flex items-center gap-3">
         <div>
-          <span className="text-[13px] font-semibold text-slate-900">{project.name}</span>
-          <span className="text-[11px] text-slate-400 ml-2">{project.tier}</span>
+          <span className="text-[13px] font-semibold text-slate-900">{project?.name ?? '—'}</span>
+          <span className="text-[11px] text-slate-400 ml-2">{project?.tier ?? ''}</span>
         </div>
-        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-          project.status === 'At Risk'
-            ? 'bg-red-100 text-red-600'
-            : project.status === 'On Track'
-            ? 'bg-emerald-100 text-emerald-700'
-            : 'bg-amber-100 text-amber-700'
-        }`}>
-          {project.status}
-        </span>
+        {project?.status && (
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+            project.status === 'At Risk'
+              ? 'bg-red-100 text-red-600'
+              : project.status === 'On Track'
+              ? 'bg-emerald-100 text-emerald-700'
+              : 'bg-amber-100 text-amber-700'
+          }`}>
+            {project.status}
+          </span>
+        )}
       </div>
 
       {/* Right: search + bell + user */}
@@ -66,19 +68,19 @@ export const Header = () => {
             className="flex items-center gap-2 hover:bg-black/[0.04] px-2 py-1.5 rounded-lg transition-colors"
           >
             <img
-              src={user.avatar}
-              alt={user.name}
+              src={user?.avatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`}
+              alt={user?.name ?? 'User'}
               className="w-7 h-7 rounded-full border border-black/10"
             />
-            <span className="text-[13px] font-medium text-slate-800">{user.name}</span>
+            <span className="text-[13px] font-medium text-slate-800">{user?.name ?? '—'}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isDropdownOpen && (
             <div className="absolute right-0 top-11 z-50 w-52 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/10 border border-black/[0.06] py-1.5 overflow-hidden">
               <div className="px-4 py-3 border-b border-black/[0.06]">
-                <p className="text-[13px] font-semibold text-slate-900 truncate">{user.name}</p>
-                <p className="text-[11px] text-slate-400 truncate mt-0.5">{user.email || user.role}</p>
+                <p className="text-[13px] font-semibold text-slate-900 truncate">{user?.name ?? '—'}</p>
+                <p className="text-[11px] text-slate-400 truncate mt-0.5">{user?.email ?? user?.role ?? ''}</p>
               </div>
               <div className="py-1 px-1.5">
                 <button
