@@ -23,6 +23,18 @@ export const ProjectOverview = () => {
     );
   }
 
+  if (!project) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium">Tidak ada proyek yang ditemukan.</p>
+          <p className="text-slate-400 text-sm mt-1">Hubungi tim Bilmare untuk informasi lebih lanjut.</p>
+        </div>
+      </div>
+    );
+  }
+
   const daysToDeadline = project.deadlineOJK
     ? differenceInDays(new Date(project.deadlineOJK), new Date())
     : null;
@@ -93,10 +105,10 @@ export const ProjectOverview = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2 mb-1">
-              <span className={`text-3xl font-bold ${daysToDeadline && daysToDeadline < 30 ? 'text-red-600' : 'text-slate-900'}`}>
+              <span className={`text-3xl font-bold ${daysToDeadline !== null && daysToDeadline < 30 ? 'text-red-600' : 'text-slate-900'}`}>
                 {daysToDeadline ?? '—'}
               </span>
-              <span className="text-slate-500 font-medium">hari lagi</span>
+              {daysToDeadline !== null && <span className="text-slate-500 font-medium">hari lagi</span>}
             </div>
             {project.deadlineOJK && (
               <p className="text-sm text-slate-500">
@@ -135,7 +147,6 @@ export const ProjectOverview = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Overall progress bar */}
           <div className="w-full bg-slate-100 rounded-full h-2 mb-6">
             <div className="bg-indigo-500 h-2 rounded-full transition-all"
               style={{ width: `${project.overallProgress}%` }} />
@@ -210,58 +221,64 @@ export const ProjectOverview = () => {
             <CardTitle>Bilmare Team</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {team.map((member: any) => (
-                <div key={member.id} className="flex items-center gap-3">
-                  <img
-                    src={member.avatar}
-                    alt={member.name}
-                    className="w-10 h-10 rounded-full border border-slate-200"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`;
-                    }}
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{member.name}</p>
-                    <p className="text-xs text-slate-500">{member.role}</p>
+            {team.length === 0 ? (
+              <p className="text-sm text-slate-400">Belum ada anggota tim.</p>
+            ) : (
+              <div className="space-y-4">
+                {team.map((member: any) => (
+                  <div key={member.id} className="flex items-center gap-3">
+                    <img
+                      src={member.avatar}
+                      alt={member.name}
+                      className="w-10 h-10 rounded-full border border-slate-200"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`;
+                      }}
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{member.name}</p>
+                      <p className="text-xs text-slate-500">{member.role}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Activity Feed */}
+      {activities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {activities.slice(0, 5).map((activity, idx) => (
+                <div key={activity.id} className="flex gap-4 relative">
+                  {idx !== Math.min(activities.length, 5) - 1 && (
+                    <div className="absolute left-4 top-8 bottom-[-24px] w-px bg-slate-200" />
+                  )}
+                  <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 z-10">
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  <div className="flex-1 pt-1">
+                    <p className="text-sm text-slate-900 font-medium">{activity.description}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-slate-500">{activity.actor}</span>
+                      <span className="text-xs text-slate-300">•</span>
+                      <span className="text-xs text-slate-400">
+                        {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Activity Feed */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {activities.slice(0, 5).map((activity, idx) => (
-              <div key={activity.id} className="flex gap-4 relative">
-                {idx !== Math.min(activities.length, 5) - 1 && (
-                  <div className="absolute left-4 top-8 bottom-[-24px] w-px bg-slate-200" />
-                )}
-                <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 z-10">
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className="flex-1 pt-1">
-                  <p className="text-sm text-slate-900 font-medium">{activity.description}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-slate-500">{activity.actor}</span>
-                    <span className="text-xs text-slate-300">•</span>
-                    <span className="text-xs text-slate-400">
-                      {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      )}
     </div>
   );
 };
