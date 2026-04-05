@@ -34,6 +34,7 @@ interface AppState {
   sendMessage: (text: string) => Promise<void>;
   approveSection: (id: string) => void;
   fetchMessages: () => Promise<void>;
+  updateUserProfile: (displayName: string, avatarUrl: string) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -163,6 +164,7 @@ const mapFaq = (f: any) => ({
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authUser, setAuthUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<{ displayName?: string; avatarUrl?: string }>({});
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [loadingProject, setLoadingProject] = useState(true);
@@ -179,7 +181,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [faqsData, setFaqsData] = useState<any[]>([]);
   const [documentsData, setDocumentsData] = useState<any[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
@@ -191,12 +192,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (!sessionUser) { setLoadingProject(false); return; }
       setAuthUser(sessionUser);
 
-      // Cari project via client_users
+      // Fetch profile dari client_users
       const { data: clientUserRow } = await supabase
         .from('client_users')
-        .select('project_id')
+        .select('project_id, display_name, avatar_url')
         .eq('email', sessionUser.email)
         .single();
+
+      if (clientUserRow) {
+        setUserProfile({
+          displayName: clientUserRow.display_name ?? undefined,
+          avatarUrl: clientUserRow.avatar_url ?? undefined,
+        });
+      }
 
       let projectRow = null;
 
@@ -309,6 +317,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  // Dipanggil dari Profile.tsx setelah save berhasil
+  const updateUserProfile = (displayName: string, avatarUrl: string) => {
+    setUserProfile({ displayName, avatarUrl });
+  };
+
   const updateFindingStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
       .from('gap_findings')
@@ -356,12 +369,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addToast('Section berhasil disetujui.');
   };
 
+  const emailName = authUser?.email?.split('@')[0] ?? 'Klien';
   const user = authUser ? {
     id: authUser.id,
-    name: authUser.email?.split('@')[0] ?? 'Klien',
+    name: userProfile.displayName ?? emailName,
     email: authUser.email,
     role: 'client',
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${authUser.email}`,
+    avatar: userProfile.avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${authUser.email}`,
   } : {
     id: '',
     name: 'Klien',
@@ -400,6 +414,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       sendMessage,
       approveSection,
       fetchMessages,
+      updateUserProfile,
     }}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
