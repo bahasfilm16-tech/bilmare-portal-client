@@ -60,12 +60,13 @@ export const ProjectOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-end">
+      {/* Header — responsive wrap */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Project Overview</h1>
           <p className="text-slate-500 mt-1">Command center for your reporting project.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <Button onClick={() => navigate('/document-vault')} variant="outline" className="gap-2">
             <UploadCloud className="w-4 h-4" /> Upload Document
           </Button>
@@ -106,7 +107,7 @@ export const ProjectOverview = () => {
           <CardContent>
             <div className="flex items-baseline gap-2 mb-1">
               <span className={`text-3xl font-bold ${daysToDeadline !== null && daysToDeadline < 30 ? 'text-red-600' : 'text-slate-900'}`}>
-                {daysToDeadline ?? '—'}
+                {daysToDeadline !== null ? (daysToDeadline < 0 ? '0' : daysToDeadline) : '—'}
               </span>
               {daysToDeadline !== null && <span className="text-slate-500 font-medium">hari lagi</span>}
             </div>
@@ -152,37 +153,41 @@ export const ProjectOverview = () => {
               style={{ width: `${project.overallProgress}%` }} />
           </div>
 
-          <div className="relative">
-            <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
-            <div
-              className="absolute top-1/2 left-0 h-1 bg-indigo-500 -translate-y-1/2 rounded-full transition-all duration-500"
-              style={{ width: `${((project.currentPhase - 1) / 7) * 100}%` }}
-            />
-            <div className="relative flex justify-between">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map(phase => {
-                const isCompleted = phase < project.currentPhase;
-                const isCurrent = phase === project.currentPhase;
-                const phaseInfo = phases.find(p => p.id === phase);
+          {/* Phase tracker — scroll horizontal di mobile */}
+          <div className="overflow-x-auto -mx-2 px-2">
+            <div className="relative min-w-[480px]">
+              <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
+              <div
+                className="absolute top-1/2 left-0 h-1 bg-indigo-500 -translate-y-1/2 rounded-full transition-all duration-500"
+                style={{ width: `${((project.currentPhase - 1) / 7) * 100}%` }}
+              />
+              <div className="relative flex justify-between">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(phase => {
+                  const isCompleted = phase < project.currentPhase;
+                  const isCurrent = phase === project.currentPhase;
+                  const phaseInfo = phases.find(p => p.id === phase);
 
-                return (
-                  <div key={phase} className="flex flex-col items-center group relative">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 bg-white z-10 transition-colors
-                      ${isCompleted ? 'border-indigo-500 text-indigo-500' :
-                        isCurrent ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-100' :
-                        'border-slate-200 text-slate-400'}`}
-                    >
-                      {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : phase}
-                    </div>
-                    {phaseInfo && (
-                      <div className="absolute top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap z-20 pointer-events-none max-w-[150px] text-center">
-                        {phaseInfo.name}
+                  return (
+                    <div key={phase} className="flex flex-col items-center group relative">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 bg-white z-10 transition-colors
+                        ${isCompleted ? 'border-indigo-500 text-indigo-500' :
+                          isCurrent ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-100' :
+                          'border-slate-200 text-slate-400'}`}
+                      >
+                        {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : phase}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      {phaseInfo && (
+                        <div className="absolute top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap z-20 pointer-events-none max-w-[150px] text-center">
+                          {phaseInfo.name}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
+
           <div className="mt-6 text-center">
             <span className="text-sm font-medium text-slate-900">Fase saat ini: </span>
             <span className="text-sm text-indigo-600 font-semibold">
@@ -263,9 +268,9 @@ export const ProjectOverview = () => {
                   <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 z-10">
                     {getActivityIcon(activity.type)}
                   </div>
-                  <div className="flex-1 pt-1">
+                  <div className="flex-1 pt-1 min-w-0">
                     <p className="text-sm text-slate-900 font-medium">{activity.description}</p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="text-xs text-slate-500">{activity.actor}</span>
                       <span className="text-xs text-slate-300">•</span>
                       <span className="text-xs text-slate-400">

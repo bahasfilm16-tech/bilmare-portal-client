@@ -28,7 +28,8 @@ const mapTask = (t: any): Task => ({
 
 export const ProjectTracker = () => {
   const { phases, project } = useAppContext();
-  const [expandedPhase, setExpandedPhase] = useState<number | null>(project.currentPhase);
+  // BUG FIX: project bisa null saat useState dijalankan
+  const [expandedPhase, setExpandedPhase] = useState<number | null>(project?.currentPhase ?? null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
 
@@ -47,8 +48,8 @@ export const ProjectTracker = () => {
       setLoadingTasks(false);
     };
 
-    if (project.id) fetchTasks();
-  }, [project.id]);
+    if (project?.id) fetchTasks();
+  }, [project?.id]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -102,7 +103,7 @@ export const ProjectTracker = () => {
           <CardContent className="p-0">
             <div className="divide-y divide-slate-100">
               {phases.map((phase) => {
-                const isCurrent = phase.id === project.currentPhase;
+                const isCurrent = phase.id === project?.currentPhase;
                 const isCompleted = phase.status === 'Completed';
                 const isSelected = expandedPhase === phase.id;
 
@@ -113,7 +114,6 @@ export const ProjectTracker = () => {
                     className={`w-full text-left px-4 py-3.5 flex items-center gap-3 transition-colors hover:bg-slate-50
                       ${isSelected ? 'bg-indigo-50 border-l-2 border-indigo-500' : 'border-l-2 border-transparent'}`}
                   >
-                    {/* Icon */}
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0
                       ${isCompleted ? 'bg-emerald-500 text-white' :
                         isCurrent ? 'bg-indigo-600 text-white ring-2 ring-indigo-200' :
@@ -121,13 +121,11 @@ export const ProjectTracker = () => {
                     >
                       {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : phase.id}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate ${isCurrent ? 'text-indigo-700' : 'text-slate-800'}`}>
                         {phase.name}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium
                           ${isCompleted ? 'bg-emerald-100 text-emerald-700' :
                             isCurrent ? 'bg-indigo-100 text-indigo-700' :
@@ -178,18 +176,17 @@ export const ProjectTracker = () => {
                     className={`p-4 rounded-lg border flex items-start justify-between gap-4 transition-all hover:shadow-sm
                       ${task.status.includes('Blocked') ? 'border-red-200 bg-red-50/30' : 'border-slate-200 bg-white'}`}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">{getStatusIcon(task.status)}</div>
-                      <div>
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="mt-0.5 shrink-0">{getStatusIcon(task.status)}</div>
+                      <div className="min-w-0">
                         <h4 className="text-sm font-semibold text-slate-900">{task.name}</h4>
-                        <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
                           <span className="text-xs text-slate-500 flex items-center gap-1">
-                            <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600">
+                            <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600 shrink-0">
                               {task.assignee.charAt(0)}
                             </div>
                             {task.assignee}
                           </span>
-                          <span className="text-xs text-slate-300">•</span>
                           <span className="text-xs text-slate-500 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             Due {format(task.dueDate, 'dd MMM yyyy')}
