@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/Badge';
 
 interface Task {
   id: string;
-  phaseId: number;
+  phaseId: string;
   name: string;
   status: string;
   assignee: string;
@@ -28,10 +28,17 @@ const mapTask = (t: any): Task => ({
 
 export const ProjectTracker = () => {
   const { phases, project } = useAppContext();
-  // BUG FIX: project bisa null saat useState dijalankan
-  const [expandedPhase, setExpandedPhase] = useState<number | null>(project?.currentPhase ?? null);
+  const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
+
+  // Set expanded phase ke current phase setelah phases/project loaded
+  useEffect(() => {
+    if (phases.length > 0 && expandedPhase === null) {
+      const current = phases.find(p => p.id === project?.currentPhase);
+      if (current) setExpandedPhase(current.id);
+    }
+  }, [phases, project?.currentPhase]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -39,7 +46,7 @@ export const ProjectTracker = () => {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
-        .eq('project_id', project.id)
+        .eq('project_id', project?.id)
         .order('due_date', { ascending: true });
 
       if (!error && data && data.length > 0) {
@@ -102,7 +109,7 @@ export const ProjectTracker = () => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-slate-100">
-              {phases.map((phase) => {
+              {phases.map((phase, index) => {
                 const isCurrent = phase.id === project?.currentPhase;
                 const isCompleted = phase.status === 'Completed';
                 const isSelected = expandedPhase === phase.id;
@@ -119,7 +126,7 @@ export const ProjectTracker = () => {
                         isCurrent ? 'bg-indigo-600 text-white ring-2 ring-indigo-200' :
                         'bg-slate-100 text-slate-500'}`}
                     >
-                      {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : phase.id}
+                      {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate ${isCurrent ? 'text-indigo-700' : 'text-slate-800'}`}>
@@ -183,7 +190,7 @@ export const ProjectTracker = () => {
                         <div className="flex items-center gap-3 mt-2 flex-wrap">
                           <span className="text-xs text-slate-500 flex items-center gap-1">
                             <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600 shrink-0">
-                              {task.assignee.charAt(0)}
+                              {task.assignee?.charAt(0) ?? '?'}
                             </div>
                             {task.assignee}
                           </span>
