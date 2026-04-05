@@ -18,47 +18,50 @@ import { supabase } from './supabase';
 
 function App() {
   const [session, setSession] = useState<any>(undefined);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
+    let listenerActive = false;
+
     const init = async () => {
-      // 1. Cek apakah ada token di URL (dikirim dari public website login)
       const params = new URLSearchParams(window.location.search);
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
 
       if (accessToken && refreshToken) {
-        // Set session dari token URL
         const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
 
-        // Bersihkan token dari URL tanpa reload
         window.history.replaceState({}, document.title, window.location.pathname);
 
         if (!error && data.session) {
           setSession(data.session);
+          setInitializing(false);
+          listenerActive = true;
           return;
         }
       }
 
-      // 2. Tidak ada token di URL → cek session yang sudah ada
       const { data } = await supabase.auth.getSession();
-      setSession(data.session);
+      setSession(data.session ?? null);
+      setInitializing(false);
+      listenerActive = true;
     };
 
     init();
 
-    // Listen perubahan auth
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Abaikan event yang datang sebelum init() selesai
+      if (!listenerActive) return;
       setSession(session);
     });
 
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Masih loading
-  if (session === undefined) {
+  if (initializing) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white text-sm">Loading...</div>
@@ -66,7 +69,6 @@ function App() {
     );
   }
 
-  // Belum login → tampilkan Login
   if (!session) {
     return (
       <BrowserRouter>
@@ -77,7 +79,6 @@ function App() {
     );
   }
 
-  // Sudah login → tampilkan app
   return (
     <BrowserRouter>
       <AppProvider>
