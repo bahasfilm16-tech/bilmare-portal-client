@@ -19,7 +19,6 @@ interface DocRow {
   size: string;
   status: string;
   version: string;
-  required: boolean;
   clarification?: string;
   filePath?: string;
 }
@@ -34,15 +33,16 @@ const CATEGORIES = [
   'Lainnya',
 ];
 
+// FIX 1: mapDoc sekarang baca d.document_name (bukan d.name)
+// FIX 2: hapus kolom 'required' dan 'clarification' karena tidak ada di tabel
 const mapDoc = (d: any): DocRow => ({
   id: String(d.id),
-  name: d.name ?? '',
+  name: d.document_name ?? '',
   category: d.category ?? '',
   uploadDate: d.upload_date ? new Date(d.upload_date) : new Date(),
-  size: d.file_size ?? d.size ?? '—',
+  size: d.file_size ?? '—',
   status: d.status ?? 'Received',
   version: d.version ?? 'v1',
-  required: d.required ?? false,
   clarification: d.clarification ?? '',
   filePath: d.file_path ?? '',
 });
@@ -57,7 +57,7 @@ export const DocumentVault = () => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<DocRow | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile sidebar toggle
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Upload form
   const [uploadName, setUploadName] = useState('');
@@ -115,16 +115,18 @@ export const DocumentVault = () => {
         ? `${(uploadFile.size / 1024 / 1024).toFixed(1)} MB`
         : `${(uploadFile.size / 1024).toFixed(0)} KB`;
 
+      // FIX 3: gunakan 'document_name' sesuai kolom di tabel, hapus 'required'
       const { error: dbError } = await supabase.from('documents').insert([{
         project_id: projectId,
-        name: `${uploadName.trim()}.${ext}`,
+        document_name: `${uploadName.trim()}.${ext}`,
         category: uploadCategory,
         file_path: fileName,
+        file_name: uploadFile.name,
         file_size: sizeStr,
+        file_type: uploadFile.type,
         status: 'Received',
         version: 'v1',
-        required: false,
-        upload_date: new Date().toISOString().split('T')[0],
+        upload_date: new Date().toISOString(),
       }]);
 
       if (dbError) throw dbError;
@@ -242,30 +244,6 @@ export const DocumentVault = () => {
               <CategorySidebar />
             </CardContent>
           </Card>
-
-          {docs.filter(d => d.required).length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Completeness Checklist</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {docs.filter(d => d.required).map(doc => (
-                    <div key={doc.id} className="flex items-start gap-2">
-                      {doc.status !== 'Needs Clarification'
-                        ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        : <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                      }
-                      <div>
-                        <p className="text-xs font-medium text-slate-700 leading-tight">{doc.category}</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">{doc.status}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Main Content */}
@@ -316,7 +294,6 @@ export const DocumentVault = () => {
                               <div className="min-w-0">
                                 <p className="font-medium text-slate-900 truncate max-w-[160px] sm:max-w-none">{doc.name}</p>
                                 <p className="text-xs text-slate-500">{doc.size} · {doc.version}</p>
-                                {/* Show category on mobile */}
                                 <p className="text-xs text-slate-400 md:hidden mt-0.5">{doc.category}</p>
                               </div>
                             </div>
