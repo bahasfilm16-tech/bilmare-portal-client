@@ -118,6 +118,7 @@ export const DocumentVault = () => {
         : `${(uploadFile.size / 1024).toFixed(0)} KB`;
 
       const { error: dbError } = await supabase.from('documents').insert([{
+        id: crypto.randomUUID(),
         project_id: projectId,
         document_name: `${uploadName.trim()}.${ext}`,
         category: uploadCategory,
