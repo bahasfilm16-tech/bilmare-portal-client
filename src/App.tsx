@@ -15,16 +15,46 @@ import { CommunicationHub } from './pages/CommunicationHub';
 import { EngagementAdmin } from './pages/EngagementAdmin';
 import { Profile } from './pages/Profile';
 import Login from './pages/Login';
+import SetPassword from './pages/SetPassword';
 import { supabase } from './supabase';
 
 function App() {
   const [session, setSession] = useState<any>(undefined);
   const [initializing, setInitializing] = useState(true);
+  const [needsPassword, setNeedsPassword] = useState(false);
 
   useEffect(() => {
     let listenerActive = false;
 
     const init = async () => {
+      // Handle hash token dari magic link/invite (format: #access_token=...&type=invite)
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        const params = new URLSearchParams(hash.replace('#', ''));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        const type = params.get('type'); // 'invite' atau 'magiclink'
+
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          window.history.replaceState({}, document.title, window.location.pathname);
+
+          if (!error && data.session) {
+            setSession(data.session);
+            // Kalau dari invite → perlu set password
+            if (type === 'invite') setNeedsPassword(true);
+            setInitializing(false);
+            listenerActive = true;
+            return;
+          }
+        }
+      }
+
+      // Handle query params (fallback)
       const params = new URLSearchParams(window.location.search);
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
@@ -34,9 +64,7 @@ function App() {
           access_token: accessToken,
           refresh_token: refreshToken,
         });
-
         window.history.replaceState({}, document.title, window.location.pathname);
-
         if (!error && data.session) {
           setSession(data.session);
           setInitializing(false);
@@ -74,6 +102,17 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="*" element={<Login />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  // Dari invite link → wajib set password dulu
+  if (needsPassword) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="*" element={<SetPassword onDone={() => setNeedsPassword(false)} />} />
         </Routes>
       </BrowserRouter>
     );
