@@ -23,20 +23,20 @@ interface DocRow {
   filePath?: string;
 }
 
-const CATEGORIES = [
-  'Laporan Keuangan Audited',
-  'Laporan Tahunan dan Keberlanjutan Tahun Sebelumnya',
-  'Laporan Operasional',
-  'Database ESG dan Metrik Lingkungan',
-  'Notulen Rapat Direksi',
-  'Laporan Audit Internal',
-  'Lainnya',
-];
+// Map doc_type dari Portal Tim ke label readable untuk klien
+const DOC_TYPE_LABEL: Record<string, string> = {
+  AR: 'Annual Report',
+  SR: 'Sustainability Report',
+  LK: 'Laporan Keuangan',
+  OTHER: 'Dokumen Lainnya',
+};
+
+const CATEGORIES = ['Annual Report', 'Sustainability Report', 'Laporan Keuangan', 'Dokumen Lainnya'];
 
 const mapDoc = (d: any): DocRow => ({
   id: String(d.id),
   name: d.document_name ?? '',
-  category: d.category ?? '',
+  category: DOC_TYPE_LABEL[d.doc_type ?? ''] ?? d.doc_type ?? 'Dokumen Lainnya',
   uploadDate: d.upload_date ? new Date(d.upload_date) : new Date(),
   size: d.file_size
     ? d.file_size > 1024 * 1024
@@ -76,6 +76,7 @@ export const DocumentVault = () => {
       .from('documents')
       .select('*')
       .eq('project_id', projectId)
+      .eq('status', 'Active')
       .order('upload_date', { ascending: false });
 
     if (!error && data && data.length > 0) {
@@ -117,16 +118,23 @@ export const DocumentVault = () => {
         ? `${(uploadFile.size / 1024 / 1024).toFixed(1)} MB`
         : `${(uploadFile.size / 1024).toFixed(0)} KB`;
 
+      // Reverse map dari label ke doc_type
+      const LABEL_TO_DOC_TYPE: Record<string, string> = {
+        'Annual Report': 'AR',
+        'Sustainability Report': 'SR',
+        'Laporan Keuangan': 'LK',
+        'Dokumen Lainnya': 'OTHER',
+      };
       const { error: dbError } = await supabase.from('documents').insert([{
         id: crypto.randomUUID(),
         project_id: projectId,
         document_name: `${uploadName.trim()}.${ext}`,
-        category: uploadCategory,
+        doc_type: LABEL_TO_DOC_TYPE[uploadCategory] ?? 'OTHER',
         file_path: fileName,
         file_name: uploadFile.name,
         file_size: uploadFile.size,
         file_type: uploadFile.type,
-        status: 'Received',
+        status: 'Active',
         version: 'v1',
         upload_date: new Date().toISOString(),
       }]);
