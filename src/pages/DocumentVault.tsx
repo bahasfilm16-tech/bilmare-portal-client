@@ -208,6 +208,7 @@ export const DocumentVault = () => {
       const { error: dErr } = await supabase.from('documents').insert([{
         id: crypto.randomUUID(), project_id: projectId,
         document_name: `${t1Name.trim()}.${ext}`, doc_type: t1Cat,
+        category: TIER1_CATEGORIES.find(c => c.value === t1Cat)?.label ?? t1Cat,
         file_path: fileName, file_name: t1File.name,
         file_size: t1File.size, file_type: t1File.type,
         status: 'Received', version: 'v1',
