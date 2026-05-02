@@ -7,12 +7,12 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   const variants = {
-    default: 'bg-slate-900 dark:bg-white/10 text-white dark:text-slate-200 border-transparent',
-    secondary: 'bg-slate-100 dark:bg-white/[0.07] text-slate-600 dark:text-slate-300 border-transparent',
-    destructive: 'bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400 border-red-200/60 dark:border-red-500/20',
-    outline: 'text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/[0.1] bg-transparent',
-    success: 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-transparent',
-    warning: 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-transparent',
+    default: 'bg-[#1A1F36] dark:bg-white/10 text-white dark:text-slate-200 border-transparent',
+    secondary: 'bg-[#F6F9FC] dark:bg-white/[0.07] text-[#697386] dark:text-slate-300 border-[#E3E8EF] dark:border-white/[0.08]',
+    destructive: 'bg-[#FFF0F3] dark:bg-[#DF1B41]/10 text-[#DF1B41] dark:text-red-400 border-[#FFC0C9] dark:border-[#DF1B41]/20',
+    outline: 'text-[#697386] dark:text-slate-300 border border-[#E3E8EF] dark:border-white/[0.1] bg-transparent',
+    success: 'bg-[#EDFAF4] dark:bg-[#09825D]/10 text-[#09825D] dark:text-emerald-400 border-[#B3EFDA] dark:border-[#09825D]/20',
+    warning: 'bg-[#FFF5EB] dark:bg-amber-500/10 text-[#C44C08] dark:text-amber-400 border-[#FECB9D] dark:border-amber-500/20',
   };
 
   return (
