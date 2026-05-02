@@ -8,16 +8,14 @@ export const MainLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-900">
-      {/* Overlay untuk mobile */}
+    <div className="flex h-screen bg-[#F6F7FB] dark:bg-[#0D0D12] overflow-hidden text-slate-900 dark:text-slate-100">
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <div className={`
         fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
         transform transition-transform duration-300 ease-in-out
@@ -26,10 +24,9 @@ export const MainLayout = () => {
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             <ErrorBoundary>
               <Outlet />

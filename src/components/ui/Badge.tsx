@@ -7,15 +7,22 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   const variants = {
-    default: 'bg-slate-900 text-slate-50 hover:bg-slate-900/80',
-    secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-100/80',
-    destructive: 'bg-red-500 text-slate-50 hover:bg-red-500/80',
-    outline: 'text-slate-950 border border-slate-200',
-    success: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100/80',
-    warning: 'bg-amber-100 text-amber-800 hover:bg-amber-100/80',
+    default: 'bg-slate-900 dark:bg-white/10 text-white dark:text-slate-200 border-transparent',
+    secondary: 'bg-slate-100 dark:bg-white/[0.07] text-slate-600 dark:text-slate-300 border-transparent',
+    destructive: 'bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400 border-red-200/60 dark:border-red-500/20',
+    outline: 'text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/[0.1] bg-transparent',
+    success: 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-transparent',
+    warning: 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-transparent',
   };
 
   return (
-    <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2", variants[variant], className)} {...props} />
+    <div
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors",
+        variants[variant],
+        className
+      )}
+      {...props}
+    />
   );
 }

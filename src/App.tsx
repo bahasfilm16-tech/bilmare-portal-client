@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProjectOverview } from './pages/ProjectOverview';
 import { DocumentVault } from './pages/DocumentVault';
@@ -27,13 +28,12 @@ function App() {
     let listenerActive = false;
 
     const init = async () => {
-      // Handle hash token dari magic link/invite (format: #access_token=...&type=invite)
       const hash = window.location.hash;
       if (hash && hash.includes('access_token')) {
         const params = new URLSearchParams(hash.replace('#', ''));
         const accessToken = params.get('access_token');
         const refreshToken = params.get('refresh_token');
-        const type = params.get('type'); // 'invite' atau 'magiclink'
+        const type = params.get('type');
 
         if (accessToken && refreshToken) {
           const { data, error } = await supabase.auth.setSession({
@@ -45,7 +45,6 @@ function App() {
 
           if (!error && data.session) {
             setSession(data.session);
-            // Kalau dari invite → perlu set password
             if (type === 'invite') setNeedsPassword(true);
             setInitializing(false);
             listenerActive = true;
@@ -54,7 +53,6 @@ function App() {
         }
       }
 
-      // Handle query params (fallback)
       const params = new URLSearchParams(window.location.search);
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
@@ -91,55 +89,65 @@ function App() {
 
   if (initializing) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-white text-sm">Loading...</div>
-      </div>
+      <ThemeProvider>
+        <div className="min-h-screen bg-[#F6F7FB] dark:bg-[#0D0D12] flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+            <span className="text-sm text-slate-500 dark:text-slate-400">Loading...</span>
+          </div>
+        </div>
+      </ThemeProvider>
     );
   }
 
   if (!session) {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="*" element={<Login />} />
-        </Routes>
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="*" element={<Login />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
     );
   }
 
-  // Dari invite link → wajib set password dulu
   if (needsPassword) {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="*" element={<SetPassword onDone={() => setNeedsPassword(false)} />} />
-        </Routes>
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="*" element={<SetPassword onDone={() => setNeedsPassword(false)} />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
     );
   }
 
   return (
-    <BrowserRouter>
-      <AppProvider>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<ProjectOverview />} />
-            <Route path="document-vault" element={<DocumentVault />} />
-            <Route path="project-tracker" element={<ProjectTracker />} />
-            <Route path="gap-register" element={<GapRegister />} />
-            <Route path="cross-reference" element={<CrossReference />} />
-            <Route path="draft-review" element={<DraftReview />} />
-            <Route path="deliverables" element={<Deliverables />} />
-            <Route path="time-series" element={<TimeSeries />} />
-            <Route path="faq-databook" element={<FAQ />} />
-            <Route path="communication" element={<CommunicationHub />} />
-            <Route path="admin" element={<EngagementAdmin />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </AppProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AppProvider>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<ProjectOverview />} />
+              <Route path="document-vault" element={<DocumentVault />} />
+              <Route path="project-tracker" element={<ProjectTracker />} />
+              <Route path="gap-register" element={<GapRegister />} />
+              <Route path="cross-reference" element={<CrossReference />} />
+              <Route path="draft-review" element={<DraftReview />} />
+              <Route path="deliverables" element={<Deliverables />} />
+              <Route path="time-series" element={<TimeSeries />} />
+              <Route path="faq-databook" element={<FAQ />} />
+              <Route path="communication" element={<CommunicationHub />} />
+              <Route path="admin" element={<EngagementAdmin />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </AppProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
