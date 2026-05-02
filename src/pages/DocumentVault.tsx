@@ -23,6 +23,7 @@ import {
   Lock, Bell
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { usePermission } from '../hooks/usePermission';
 import { supabase } from '../supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -116,7 +117,8 @@ const formatFileSize = (bytes: number) =>
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const DocumentVault = () => {
-  const { addToast, project, deliverables } = useAppContext();
+  const { addToast, project, deliverables, logActivity } = useAppContext();
+  const { can } = usePermission();
   const projectId = project?.id ?? '';
   const tier       = project?.tier ?? 'Tier 1';
   const isT2       = tier?.toLowerCase().includes('2');
@@ -221,6 +223,7 @@ export const DocumentVault = () => {
       setIsT1UploadOpen(false);
       setT1Name(''); setT1File(null); setT1Note('');
       setT1Cat(TIER1_CATEGORIES[0].value);
+      await logActivity('document', `Dokumen diunggah: ${t1Name.trim()}`);
       await fetchTier1Docs();
     } catch (err: any) {
       setT1UploadErr(err.message ?? 'Gagal mengunggah dokumen.');
@@ -409,11 +412,13 @@ export const DocumentVault = () => {
             Upload draft laporan dan dokumen pendukung untuk diverifikasi tim Bilmare.
           </p>
         </div>
-        <button onClick={() => { setIsT1UploadOpen(true); setT1UploadErr(''); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0"
-          style={{ background: '#0071e3', color: 'white' }}>
-          <Upload className="w-4 h-4" /> Upload Dokumen
-        </button>
+        {can('uploadDocument') && (
+          <button onClick={() => { setIsT1UploadOpen(true); setT1UploadErr(''); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0"
+            style={{ background: '#0071e3', color: 'white' }}>
+            <Upload className="w-4 h-4" /> Upload Dokumen
+          </button>
+        )}
       </div>
 
       {t1Cats.length > 2 && (

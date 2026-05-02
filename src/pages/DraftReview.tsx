@@ -5,6 +5,7 @@ import {
   Send, AlertCircle, GitCompare, Loader2, X, ChevronLeft
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { usePermission } from '../hooks/usePermission';
 import { supabase } from '../supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -12,6 +13,7 @@ import { Badge } from '../components/ui/Badge';
 
 export const DraftReview = () => {
   const { draftSections, draftComments, approveSection, addToast, project, user } = useAppContext();
+  const { can } = usePermission();
   const [selectedReport, setSelectedReport] = useState('AR');
   const [activeSectionId, setActiveSectionId] = useState(draftSections.find(s => s.report === 'AR')?.id || '');
   const [newComment, setNewComment] = useState('');
@@ -149,10 +151,14 @@ export const DraftReview = () => {
                   </div>
                 </div>
                 {activeSection.status !== 'Approved' ? (
-                  <Button onClick={() => handleApprove(activeSection.id)} className="gap-2 shrink-0" disabled={approvingId === activeSection.id}>
-                    {approvingId === activeSection.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    {approvingId === activeSection.id ? 'Menyimpan...' : 'Approve'}
-                  </Button>
+                  can('approveSection') ? (
+                    <Button onClick={() => handleApprove(activeSection.id)} className="gap-2 shrink-0" disabled={approvingId === activeSection.id}>
+                      {approvingId === activeSection.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      {approvingId === activeSection.id ? 'Menyimpan...' : 'Approve'}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic shrink-0">Hanya Full Access yang dapat menyetujui</span>
+                  )
                 ) : (
                   <Badge variant="success" className="text-sm px-3 py-1 shrink-0"><CheckCircle2 className="w-4 h-4 mr-1" /> Approved</Badge>
                 )}
@@ -163,9 +169,10 @@ export const DraftReview = () => {
                 {/* Document Text */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-white">
                   <div className="max-w-2xl mx-auto prose prose-slate prose-sm md:prose-base">
-                    <p className="leading-relaxed text-slate-800">{activeSection.content}</p>
-                    <p className="leading-relaxed text-slate-800 mt-4">Sejalan dengan visi misi perusahaan, kami terus memperkuat fundamental bisnis melalui diversifikasi portofolio dan digitalisasi layanan. Sepanjang tahun 2024, berbagai inisiatif strategis telah dieksekusi dengan baik, menghasilkan pertumbuhan yang solid di tengah dinamika pasar global.</p>
-                    <p className="leading-relaxed text-slate-800 mt-4">Komitmen terhadap prinsip keberlanjutan juga diwujudkan melalui integrasi aspek ESG dalam setiap pengambilan keputusan bisnis. Kami percaya bahwa pertumbuhan jangka panjang hanya dapat dicapai dengan memberikan nilai tambah bagi seluruh pemangku kepentingan.</p>
+                    {activeSection.content
+                      ? <p className="leading-relaxed text-slate-800 whitespace-pre-wrap">{activeSection.content}</p>
+                      : <p className="text-slate-400 italic text-sm">Konten section belum tersedia.</p>
+                    }
                   </div>
                 </div>
 
@@ -193,16 +200,22 @@ export const DraftReview = () => {
                       ))
                     )}
                   </div>
-                  <div className="p-4 bg-white border-t border-slate-200 shrink-0">
-                    <div className="relative">
-                      <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tambahkan komentar..."
-                        className="w-full border border-slate-300 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-20" />
-                      <button onClick={handleAddComment} disabled={!newComment.trim() || sendingComment}
-                        className="absolute bottom-3 right-3 text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-30">
-                        {sendingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      </button>
+                  {can('addComment') ? (
+                    <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+                      <div className="relative">
+                        <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tambahkan komentar..."
+                          className="w-full border border-slate-300 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-20" />
+                        <button onClick={handleAddComment} disabled={!newComment.trim() || sendingComment}
+                          className="absolute bottom-3 right-3 text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-30">
+                          {sendingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
+                      <p className="text-xs text-slate-400 text-center">Role Anda tidak dapat menambahkan komentar.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </>

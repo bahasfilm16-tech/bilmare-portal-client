@@ -40,10 +40,15 @@ export const ProjectOverview = () => {
     : null;
 
   const openFindings = gapFindings.filter(f => f.status === 'Open').length;
-  const requiredDocs = documents.filter(d => d.required);
-  const receivedDocs = requiredDocs.filter(d => d.status !== 'Needs Clarification');
-  const docProgress = requiredDocs.length > 0
-    ? Math.round((receivedDocs.length / requiredDocs.length) * 100)
+  const acceptedDocs = documents.filter(d => d.status === 'Active' || d.status === 'Received');
+  const needsActionDocs = documents.filter(d => d.status === 'Needs Clarification');
+  const docProgress = documents.length > 0
+    ? Math.round((acceptedDocs.length / documents.length) * 100)
+    : 0;
+
+  const completedPhases = phases.filter(p => p.status === 'Completed').length;
+  const phaseProgressPct = phases.length > 0
+    ? Math.round((completedPhases / phases.length) * 100)
     : 0;
 
   const getActivityIcon = (type: string) => {
@@ -159,28 +164,25 @@ export const ProjectOverview = () => {
               <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
               <div
                 className="absolute top-1/2 left-0 h-1 bg-indigo-500 -translate-y-1/2 rounded-full transition-all duration-500"
-                style={{ width: `${((project.currentPhase - 1) / 7) * 100}%` }}
+                style={{ width: `${phaseProgressPct}%` }}
               />
               <div className="relative flex justify-between">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(phase => {
-                  const isCompleted = phase < project.currentPhase;
-                  const isCurrent = phase === project.currentPhase;
-                  const phaseInfo = phases.find(p => p.id === phase);
+                {phases.map((phase: any, index: number) => {
+                  const isCompleted = phase.status === 'Completed';
+                  const isCurrent = phase.id === project.currentPhase;
 
                   return (
-                    <div key={phase} className="flex flex-col items-center group relative">
+                    <div key={phase.id} className="flex flex-col items-center group relative">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 bg-white z-10 transition-colors
                         ${isCompleted ? 'border-indigo-500 text-indigo-500' :
                           isCurrent ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-100' :
                           'border-slate-200 text-slate-400'}`}
                       >
-                        {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : phase}
+                        {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : index + 1}
                       </div>
-                      {phaseInfo && (
-                        <div className="absolute top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap z-20 pointer-events-none max-w-[150px] text-center">
-                          {phaseInfo.name}
-                        </div>
-                      )}
+                      <div className="absolute top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap z-20 pointer-events-none max-w-[150px] text-center">
+                        {phase.name}
+                      </div>
                     </div>
                   );
                 })}
@@ -204,16 +206,25 @@ export const ProjectOverview = () => {
             <CardTitle>Document Completeness</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="font-medium text-slate-700">Required Documents Received</span>
-              <span className="font-bold text-slate-900">{receivedDocs.length} / {requiredDocs.length}</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-2.5 mb-4">
-              <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${docProgress}%` }} />
-            </div>
-            <p className="text-sm text-slate-500 mb-4">
-              We need all required documents to proceed to the next phase without delay.
-            </p>
+            {documents.length === 0 ? (
+              <p className="text-sm text-slate-400 mb-4">Belum ada dokumen yang diunggah.</p>
+            ) : (
+              <>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="font-medium text-slate-700">Dokumen Diterima</span>
+                  <span className="font-bold text-slate-900">{acceptedDocs.length} / {documents.length}</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2.5 mb-3">
+                  <div className="bg-emerald-500 h-2.5 rounded-full transition-all" style={{ width: `${docProgress}%` }} />
+                </div>
+                {needsActionDocs.length > 0 && (
+                  <p className="text-xs text-amber-600 mb-3 flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    {needsActionDocs.length} dokumen perlu klarifikasi
+                  </p>
+                )}
+              </>
+            )}
             <Button variant="outline" size="sm" onClick={() => navigate('/document-vault')}>
               View Documents
             </Button>

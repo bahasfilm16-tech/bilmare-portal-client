@@ -5,6 +5,7 @@ import {
   CheckCircle2, Loader2, RefreshCw, X, AlertTriangle, FileText
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { usePermission } from '../hooks/usePermission';
 import { supabase } from '../supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -31,6 +32,7 @@ const ROLES = ['Full Access', 'Review Only', 'Document Submitter'];
 
 export const EngagementAdmin = () => {
   const { project, addToast } = useAppContext();
+  const { can } = usePermission();
   const [users, setUsers] = useState<ClientUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [settingsUser, setSettingsUser] = useState<ClientUser | null>(null);
@@ -54,9 +56,25 @@ export const EngagementAdmin = () => {
 
   const handleResendInvite = async (user: ClientUser) => {
     setResending(user.id);
+    const portalTimUrl = import.meta.env.VITE_PORTAL_TIM_URL;
+    if (!portalTimUrl) {
+      addToast('VITE_PORTAL_TIM_URL belum dikonfigurasi.', 'error');
+      setResending(null);
+      return;
+    }
     try {
-      const { error } = await supabase.from('client_users').update({ status: 'Pending' }).eq('id', user.id);
-      if (error) throw error;
+      const res = await fetch(`${portalTimUrl}/api/invite-client`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.name,
+          projectId: project?.id,
+          resend: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Gagal mengirim undangan');
       addToast(`Undangan dikirim ulang ke ${user.email}`, 'success');
       await fetchUsers();
     } catch (err: any) {
@@ -175,18 +193,22 @@ export const EngagementAdmin = () => {
                           )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-slate-500">{user.lastAccess ? format(user.lastAccess, 'dd MMM yyyy, HH:mm') : '—'}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            {user.status === 'Pending' && (
-                              <Button variant="outline" size="sm" onClick={() => handleResendInvite(user)} disabled={resending === user.id} className="text-xs h-8 hidden sm:flex">
-                                {resending === user.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Resend'}
-                              </Button>
-                            )}
-                            <Button variant="outline" size="sm" className="text-xs h-8 px-2" onClick={() => { setSettingsUser(user); setNewRole(user.role); }} title="Ubah Role">
-                              <Settings className="w-4 h-4 text-slate-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                        {can('manageUsers') && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              {user.status === 'Pending' && (
+                                <Button variant="outline" size="sm" onClick={() => handleResendInvite(user)} disabled={resending === user.id} className="text-xs h-8 hidden sm:flex">
+                                  {resending === user.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Resend'}
+                                </Button>
+                              )}
+                              {can('changeUserRole') && (
+                                <Button variant="outline" size="sm" className="text-xs h-8 px-2" onClick={() => { setSettingsUser(user); setNewRole(user.role); }} title="Ubah Role">
+                                  <Settings className="w-4 h-4 text-slate-500" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                     {users.length === 0 && (<TableRow><TableCell colSpan={5} className="text-center text-slate-400 py-8 text-sm">Belum ada user terdaftar.</TableCell></TableRow>)}
@@ -224,11 +246,13 @@ export const EngagementAdmin = () => {
                   <p className="text-xs text-slate-600 mb-4">Data proyek akan diarsipkan secara aman 90 hari setelah proyek selesai. Final deliverables tetap dapat diakses.</p>
                   <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => setPolicyOpen(true)}><FileText className="w-4 h-4" /> View Full Policy</Button>
                 </div>
-                <div className="p-4 border border-red-200 bg-red-50 rounded-xl">
-                  <h4 className="text-sm font-semibold text-red-900 mb-2">Danger Zone</h4>
-                  <p className="text-xs text-red-700 mb-4">Tindakan ini tidak dapat dibatalkan. Harap berhati-hati.</p>
-                  <Button variant="destructive" size="sm" className="w-full" onClick={() => { setArchivalOpen(true); setArchivalConfirm(''); }}>Request Project Archival</Button>
-                </div>
+                {can('requestArchival') && (
+                  <div className="p-4 border border-red-200 bg-red-50 rounded-xl">
+                    <h4 className="text-sm font-semibold text-red-900 mb-2">Danger Zone</h4>
+                    <p className="text-xs text-red-700 mb-4">Tindakan ini tidak dapat dibatalkan. Harap berhati-hati.</p>
+                    <Button variant="destructive" size="sm" className="w-full" onClick={() => { setArchivalOpen(true); setArchivalConfirm(''); }}>Request Project Archival</Button>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

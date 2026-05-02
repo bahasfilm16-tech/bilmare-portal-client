@@ -5,6 +5,7 @@ import {
   MessageSquare, History, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { usePermission } from '../hooks/usePermission';
 import { supabase } from '../supabase';
 import * as XLSX from 'xlsx-js-style';
 import { Card, CardContent } from '../components/ui/Card';
@@ -14,7 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Modal } from '../components/ui/Modal';
 
 export const GapRegister = () => {
-  const { gapFindings, updateFindingStatus, addToast } = useAppContext();
+  const { gapFindings, updateFindingStatus, addToast, logActivity } = useAppContext();
+  const { can } = usePermission();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [riskFilter, setRiskFilter] = useState<string>('All');
@@ -72,6 +74,7 @@ export const GapRegister = () => {
       setSelectedFinding({ ...selectedFinding, status: 'Client Acknowledged' });
       setClientResponse('');
       addToast('Respons berhasil disimpan', 'success');
+      await logActivity('finding', `Respons diberikan untuk temuan: ${selectedFinding.id}`, selectedFinding.id);
     } catch (err: any) {
       addToast('Gagal menyimpan respons: ' + err.message, 'error');
     } finally {
@@ -232,19 +235,25 @@ export const GapRegister = () => {
             {selectedFinding.status !== 'Resolved' && (
               <div className="border-t border-slate-200 pt-6">
                 <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Client Response</h4>
-                <textarea value={clientResponse} onChange={(e) => setClientResponse(e.target.value)}
-                  placeholder="Provide context, clarification, or action plan..."
-                  className="w-full h-24 border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none mb-3" />
-                <div className="flex justify-end gap-2 flex-wrap">
-                  {selectedFinding.status === 'Client Acknowledged' && (
-                    <Button variant="outline" onClick={async () => { await updateFindingStatus(selectedFinding.id, 'In Resolution'); setSelectedFinding({ ...selectedFinding, status: 'In Resolution' }); }}>
-                      Mark as In Resolution
-                    </Button>
-                  )}
-                  <Button onClick={handleSaveResponse} disabled={savingResponse}>
-                    {savingResponse ? 'Menyimpan...' : 'Save Response'}
-                  </Button>
-                </div>
+                {can('respondToFinding') ? (
+                  <>
+                    <textarea value={clientResponse} onChange={(e) => setClientResponse(e.target.value)}
+                      placeholder="Provide context, clarification, or action plan..."
+                      className="w-full h-24 border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none mb-3" />
+                    <div className="flex justify-end gap-2 flex-wrap">
+                      {selectedFinding.status === 'Client Acknowledged' && (
+                        <Button variant="outline" onClick={async () => { await updateFindingStatus(selectedFinding.id, 'In Resolution'); setSelectedFinding({ ...selectedFinding, status: 'In Resolution' }); }}>
+                          Mark as In Resolution
+                        </Button>
+                      )}
+                      <Button onClick={handleSaveResponse} disabled={savingResponse}>
+                        {savingResponse ? 'Menyimpan...' : 'Save Response'}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Role Anda tidak dapat memberikan respons terhadap temuan.</p>
+                )}
               </div>
             )}
             <div className="border-t border-slate-200 pt-6">

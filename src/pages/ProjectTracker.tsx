@@ -36,7 +36,7 @@ export const ProjectTracker = () => {
   useEffect(() => {
     if (phases.length > 0 && expandedPhase === null) {
       const current = phases.find(p => p.id === project?.currentPhase);
-      if (current) setExpandedPhase(current.id);
+      if (current) setExpandedPhase(String(current.id));
     }
   }, [phases, project?.currentPhase]);
 
@@ -117,7 +117,7 @@ export const ProjectTracker = () => {
                 return (
                   <button
                     key={phase.id}
-                    onClick={() => setExpandedPhase(isSelected ? null : phase.id)}
+                    onClick={() => setExpandedPhase(isSelected ? null : String(phase.id))}
                     className={`w-full text-left px-4 py-3.5 flex items-center gap-3 transition-colors hover:bg-slate-50
                       ${isSelected ? 'bg-indigo-50 border-l-2 border-indigo-500' : 'border-l-2 border-transparent'}`}
                   >

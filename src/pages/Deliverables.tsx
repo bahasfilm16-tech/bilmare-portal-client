@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
   Download, FileText, CheckCircle2, Clock,
-  AlertCircle, Loader2, RefreshCw, Upload, X
+  AlertCircle, Loader2, RefreshCw
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../supabase';
@@ -36,10 +36,6 @@ export const Deliverables = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ready' | 'progress'>('ready');
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDeliverables = async () => {
     if (!project?.id) return;
@@ -89,27 +85,6 @@ export const Deliverables = () => {
       addToast('Gagal mengunduh: ' + err.message, 'error');
     } finally {
       setDownloading(null);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!uploadFile || !uploadingFor) return;
-    setUploading(true);
-    try {
-      const ext = uploadFile.name.split('.').pop();
-      const fileName = `deliverables/${project.id}/${uploadingFor}_${Date.now()}.${ext}`;
-      const { error: storageError } = await supabase.storage.from('Portal Client').upload(fileName, uploadFile, { upsert: true });
-      if (storageError) throw storageError;
-      const { error: dbError } = await supabase.from('deliverables').update({ file_path: fileName, status: 'Ready for Download', progress: 100, date_available: new Date().toISOString().split('T')[0] }).eq('id', uploadingFor);
-      if (dbError) throw dbError;
-      addToast('File berhasil diupload!', 'success');
-      setUploadingFor(null);
-      setUploadFile(null);
-      await fetchDeliverables();
-    } catch (err: any) {
-      addToast('Gagal upload: ' + err.message, 'error');
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -202,36 +177,6 @@ export const Deliverables = () => {
         </div>
       )}
 
-      {/* Upload Modal */}
-      {uploadingFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => { setUploadingFor(null); setUploadFile(null); }} />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-              <h2 className="text-lg font-bold text-slate-900">Upload File Deliverable</h2>
-              <button onClick={() => { setUploadingFor(null); setUploadFile(null); }} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-slate-600 font-medium">{deliverables.find(d => d.id === uploadingFor)?.name}</p>
-              <input ref={fileInputRef} type="file" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} />
-              <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:bg-slate-50 cursor-pointer transition-colors">
-                {uploadFile ? (
-                  <div className="flex items-center justify-center gap-2"><FileText className="w-5 h-5 text-indigo-500" /><span className="text-sm font-medium text-slate-700">{uploadFile.name}</span></div>
-                ) : (
-                  <><Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" /><p className="text-sm text-slate-600">Klik untuk pilih file</p><p className="text-xs text-slate-400 mt-1">PDF, Excel, Word — maks 50MB</p></>
-                )}
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => { setUploadingFor(null); setUploadFile(null); }}>Batal</Button>
-                <Button onClick={handleUpload} disabled={!uploadFile || uploading} className="gap-2">
-                  {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {uploading ? 'Mengupload...' : 'Upload'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
