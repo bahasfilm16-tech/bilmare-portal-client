@@ -26,7 +26,7 @@ export default function Login() {
       .single();
 
     if (profile?.role === 'admin' || profile?.role === 'staff') {
-      window.location.href = 'https://portal-tim.vercel.app';
+      window.location.href = import.meta.env.VITE_PORTAL_TIM_URL ?? 'https://portal-tim.vercel.app';
     }
     setLoading(false);
   };
