@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
-  CheckCircle2, Clock, AlertTriangle, ListTodo, Loader2
+  CheckCircle2, Clock, AlertTriangle, ListTodo, Loader2, CheckCheck
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
 
 interface Task {
   id: string;
@@ -31,6 +32,7 @@ export const ProjectTracker = () => {
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [unblocking, setUnblocking] = useState<string | null>(null);
 
   // Set expanded phase ke current phase setelah phases/project loaded
   useEffect(() => {
@@ -77,6 +79,18 @@ export const ProjectTracker = () => {
       case 'Blocked by Bilmare': return <Badge variant="warning">Blocked by Bilmare</Badge>;
       default: return <Badge variant="outline">To Do</Badge>;
     }
+  };
+
+  const handleUnblockTask = async (taskId: string) => {
+    setUnblocking(taskId);
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: 'In Progress' })
+      .eq('id', taskId);
+    if (!error) {
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'In Progress' } : t));
+    }
+    setUnblocking(null);
   };
 
   const hasBlockers = tasks.some(t => t.status.includes('Blocked'));
@@ -201,7 +215,23 @@ export const ProjectTracker = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="shrink-0">{getTaskBadge(task.status)}</div>
+                    <div className="shrink-0 flex flex-col items-end gap-2">
+                      {getTaskBadge(task.status)}
+                      {task.status === 'Blocked by Client' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 gap-1 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                          onClick={() => handleUnblockTask(task.id)}
+                          disabled={unblocking === task.id}
+                        >
+                          {unblocking === task.id
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <CheckCheck className="w-3 h-3" />}
+                          Sudah Ditangani
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

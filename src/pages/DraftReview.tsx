@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import {
   MessageSquare, CheckCircle2, Clock,
-  Send, AlertCircle, GitCompare, Loader2, X, ChevronLeft
+  Send, AlertCircle, Loader2, ChevronLeft
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { usePermission } from '../hooks/usePermission';
@@ -20,8 +20,6 @@ export const DraftReview = () => {
   const [sendingComment, setSendingComment] = useState(false);
   const [comments, setComments] = useState(draftComments);
   const [approvingId, setApprovingId] = useState<string | null>(null);
-  const [compareOpen, setCompareOpen] = useState(false);
-  // Mobile: show section list or content
   const [mobileView, setMobileView] = useState<'list' | 'content'>('list');
 
   const filteredSections = draftSections.filter(s => s.report === selectedReport);
@@ -101,9 +99,6 @@ export const DraftReview = () => {
             <option value="AR">Laporan Tahunan 2024</option>
             <option value="SR">Laporan Keberlanjutan 2024</option>
           </select>
-          <Button variant="outline" className="gap-2" onClick={() => setCompareOpen(true)}>
-            <GitCompare className="w-4 h-4" /> Compare Versions
-          </Button>
         </div>
       </div>
 
@@ -225,37 +220,6 @@ export const DraftReview = () => {
         </Card>
       </div>
 
-      {/* Compare Versions Modal */}
-      {compareOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setCompareOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 shrink-0">
-              <div><h2 className="text-lg font-bold text-slate-900">Compare Versions</h2><p className="text-sm text-slate-500">{activeSection?.name ?? 'Pilih section'}</p></div>
-              <button onClick={() => setCompareOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="flex-1 overflow-auto p-6">
-              {activeSection ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <div className="flex items-center gap-2 mb-3"><span className="text-xs font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">v1 — Previous</span></div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-600 leading-relaxed min-h-[200px]">{activeSection.content}</div>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-3"><span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">v2 — Current</span></div>
-                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 text-sm text-slate-800 leading-relaxed min-h-[200px]">
-                      {activeSection.content}
-                      <span className="bg-emerald-100 text-emerald-800 rounded px-0.5 ml-1">Sejalan dengan visi misi perusahaan, kami terus memperkuat fundamental bisnis melalui diversifikasi portofolio dan digitalisasi layanan.</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-center text-slate-500 py-12">Pilih section di halaman utama terlebih dahulu.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

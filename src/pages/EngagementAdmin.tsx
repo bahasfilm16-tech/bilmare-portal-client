@@ -43,6 +43,19 @@ export const EngagementAdmin = () => {
   const [archivalConfirm, setArchivalConfirm] = useState('');
   const [archiving, setArchiving] = useState(false);
   const [resending, setResending] = useState<string | null>(null);
+  const [securitySettings, setSecuritySettings] = useState<{ twoFa: boolean; emailNotif: boolean }>(() => {
+    try {
+      const stored = localStorage.getItem(`bilmare_security_${project?.id ?? 'default'}`);
+      return stored ? JSON.parse(stored) : { twoFa: true, emailNotif: true };
+    } catch { return { twoFa: true, emailNotif: true }; }
+  });
+
+  const handleToggleSecurity = (key: 'twoFa' | 'emailNotif') => {
+    const next = { ...securitySettings, [key]: !securitySettings[key] };
+    setSecuritySettings(next);
+    localStorage.setItem(`bilmare_security_${project?.id ?? 'default'}`, JSON.stringify(next));
+    addToast('Preferensi keamanan disimpan. Tim Bilmare akan dikonfigurasi sesuai pilihan Anda.', 'success');
+  };
 
   const fetchUsers = async () => {
     if (!project?.id) return;
@@ -225,20 +238,30 @@ export const EngagementAdmin = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                {[
-                  { icon: Key, title: 'Two-Factor Authentication (2FA)', desc: 'Wajib 2FA untuk semua anggota project.' },
-                  { icon: Mail, title: 'Email Notifications', desc: 'Kirim ringkasan harian update proyek.' },
-                ].map(({ icon: Icon, title, desc }) => (
-                  <div key={title} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50">
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5 text-slate-500 shrink-0" />
-                      <div><p className="text-sm font-medium text-slate-900">{title}</p><p className="text-xs text-slate-500">{desc}</p></div>
+                {([
+                  { key: 'twoFa' as const, icon: Key, title: 'Two-Factor Authentication (2FA)', desc: 'Wajib 2FA untuk semua anggota project.' },
+                  { key: 'emailNotif' as const, icon: Mail, title: 'Email Notifications', desc: 'Kirim ringkasan harian update proyek.' },
+                ] as const).map(({ key, icon: Icon, title, desc }) => {
+                  const enabled = securitySettings[key];
+                  return (
+                    <div key={key} className="flex items-center justify-between p-4 border border-slate-200 dark:border-white/[0.08] rounded-xl bg-slate-50 dark:bg-white/[0.03]">
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">{title}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-500">{desc}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleToggleSecurity(key)}
+                        className={`w-10 h-5 rounded-full relative shrink-0 ml-3 transition-colors ${enabled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                        aria-pressed={enabled}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${enabled ? 'right-0.5' : 'left-0.5'}`} />
+                      </button>
                     </div>
-                    <div className="w-10 h-5 bg-indigo-500 rounded-full relative cursor-pointer shrink-0 ml-3">
-                      <div className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5 shadow" />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="space-y-4">
                 <div className="p-4 border border-slate-200 rounded-xl">
