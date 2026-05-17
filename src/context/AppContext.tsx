@@ -123,10 +123,10 @@ const mapCrossRef = (c: Record<string, unknown>): CrossReference => ({
 
 const mapDraftSection = (s: Record<string, unknown>): DraftSection => ({
   id: s.id as string,
-  report: (s.report as string) ?? '',
-  name: (s.name as string) ?? '',
+  report: '',
+  name: (s.section_name as string) ?? '',
   status: (s.status as string) ?? '',
-  readiness: (s.readiness as string) ?? '',
+  readiness: '',
   content: (s.content as string) ?? '',
   version: (s.version as string) ?? 'v1',
 });
