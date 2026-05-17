@@ -292,9 +292,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setMessages(data.map((m) => ({
         id: m.id as string,
         sender: (m.sender as string) ?? '',
-        avatar: (m.avatar as string) ?? '',
-        text: (m.text as string) ?? '',
-        timestamp: m.timestamp ? new Date(m.timestamp as string) : new Date(m.inserted_at as string),
+        avatar: '',
+        text: (m.content as string) ?? '',
+        timestamp: m.timestamp ? new Date(m.timestamp as string) : new Date(m.created_at as string),
         isBilmare: (m.is_bilmare as boolean) ?? false,
       })));
     }
@@ -418,8 +418,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const { error } = await supabase.from('messages').insert([{
       project_id: activeProjectId,
       sender: senderName,
-      text: text.trim(),
-      topic: 'Client Communication',
+      content: text.trim(),
       is_bilmare: false,
       thread_type: 'client',
       timestamp: new Date().toISOString(),
