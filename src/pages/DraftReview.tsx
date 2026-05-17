@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
   MessageSquare, CheckCircle2, Clock,
@@ -14,16 +14,21 @@ import { Badge } from '../components/ui/Badge';
 export const DraftReview = () => {
   const { draftSections, draftComments, approveSection, addToast, project, user } = useAppContext();
   const { can } = usePermission();
-  const [selectedReport, setSelectedReport] = useState('AR');
-  const [activeSectionId, setActiveSectionId] = useState(draftSections.find(s => s.report === 'AR')?.id || '');
+  const [activeSectionId, setActiveSectionId] = useState(draftSections[0]?.id || '');
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
   const [comments, setComments] = useState(draftComments);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'content'>('list');
 
-  const filteredSections = draftSections.filter(s => s.report === selectedReport);
+  const filteredSections = draftSections;
   const activeSection = filteredSections.find(s => s.id === activeSectionId);
+
+  useEffect(() => {
+    if (!activeSectionId && draftSections.length > 0) {
+      setActiveSectionId(draftSections[0].id);
+    }
+  }, [draftSections]);
   const sectionComments = comments.filter(c => c.sectionId === activeSectionId);
 
   const handleSelectSection = (id: string) => {
@@ -93,13 +98,7 @@ export const DraftReview = () => {
           <h1 className="text-2xl font-bold text-slate-900">Draft Review</h1>
           <p className="text-slate-500 mt-1">Collaborative review and approval of report sections.</p>
         </div>
-        <div className="flex gap-3 flex-wrap">
-          <select value={selectedReport} onChange={(e) => { setSelectedReport(e.target.value); setActiveSectionId(draftSections.find(s => s.report === e.target.value)?.id || ''); setMobileView('list'); }}
-            className="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
-            <option value="AR">Laporan Tahunan 2024</option>
-            <option value="SR">Laporan Keberlanjutan 2024</option>
-          </select>
-        </div>
+        <p className="text-xs text-slate-400 self-end pb-1">{filteredSections.length} section tersedia</p>
       </div>
 
       {/* Mobile back button */}

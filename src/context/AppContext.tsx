@@ -63,6 +63,9 @@ const mapProject = (p: Record<string, unknown>): Project => ({
   billingMilestones: (p.billing_milestones as BillingMilestone[]) ?? [],
   teamIds: (p.team_ids as string[]) ?? [],
   leadAnalystId: (p.lead_analyst_id as string) ?? '',
+  currentStep: (p.current_step as number) ?? 1,
+  completedSteps: (p.completed_steps as number[]) ?? [],
+  gateStatuses: (p.gate_statuses as Record<string, string>) ?? {},
 });
 
 const mapTeamMember = (t: Record<string, unknown>): TeamMember => ({

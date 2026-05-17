@@ -34,6 +34,9 @@ export interface Project {
   billingMilestones: BillingMilestone[];
   teamIds: string[];
   leadAnalystId: string;
+  currentStep: number;
+  completedSteps: number[];
+  gateStatuses: Record<string, string>;
 }
 
 export interface BillingMilestone {
