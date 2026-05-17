@@ -301,11 +301,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLoadingMessages(false);
   };
 
+  const refetchActivities = async (pid: string) => {
+    const { data } = await supabase.from('activities').select('*').eq('project_id', pid).order('timestamp', { ascending: false }).limit(20);
+    if (data) setActivitiesData(data.map(mapActivity));
+  };
+  const refetchGapFindings = async (pid: string) => {
+    const { data } = await supabase.from('gap_findings').select('*').eq('project_id', pid).order('date_found', { ascending: false });
+    if (data) setGapFindingsData(data.map(mapFinding));
+  };
+  const refetchCrossRef = async (pid: string) => {
+    const { data } = await supabase.from('cross_references').select('*').eq('project_id', pid).order('no', { ascending: true });
+    if (data) setCrossRefData(data.map(mapCrossRef));
+  };
+  const refetchDraftSections = async (pid: string) => {
+    const { data } = await supabase.from('draft_sections').select('*').eq('project_id', pid);
+    if (data) setDraftSectionsData(data.map(mapDraftSection));
+  };
+  const refetchDeliverables = async (pid: string) => {
+    const { data } = await supabase.from('deliverables').select('*').eq('project_id', pid);
+    if (data) setDeliverablesData(data.map(mapDeliverable));
+  };
+  const refetchDocuments = async (pid: string) => {
+    const { data } = await supabase.from('documents').select('*').eq('project_id', pid).order('created_at', { ascending: false });
+    if (data) setDocumentsData(data as DbDocument[]);
+  };
+  const refetchFaqs = async (pid: string) => {
+    const { data } = await supabase.from('faqs').select('*').eq('project_id', pid);
+    if (data) setFaqsData(data.map(mapFaq));
+  };
+  const refetchTimeSeries = async (pid: string) => {
+    const { data } = await supabase.from('time_series_metrics').select('*').eq('project_id', pid);
+    if (data) setTimeSeriesData(data.map(mapTimeSeries));
+  };
+
   useEffect(() => {
     if (!activeProjectId) return;
     fetchMessages();
 
-    const channel = supabase
+    const msgChannel = supabase
       .channel(`messages-${activeProjectId}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -313,6 +346,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         table: 'messages',
         filter: `project_id=eq.${activeProjectId}`,
       }, () => { fetchMessages(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(msgChannel); };
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!activeProjectId) return;
+    const pid = activeProjectId;
+
+    const channel = supabase
+      .channel(`realtime-data-${pid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities',          filter: `project_id=eq.${pid}` }, () => refetchActivities(pid))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gap_findings',         filter: `project_id=eq.${pid}` }, () => refetchGapFindings(pid))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cross_references',     filter: `project_id=eq.${pid}` }, () => refetchCrossRef(pid))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'draft_sections',       filter: `project_id=eq.${pid}` }, () => refetchDraftSections(pid))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deliverables',         filter: `project_id=eq.${pid}` }, () => refetchDeliverables(pid))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'documents',            filter: `project_id=eq.${pid}` }, () => refetchDocuments(pid))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'faqs',                 filter: `project_id=eq.${pid}` }, () => refetchFaqs(pid))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'time_series_metrics',  filter: `project_id=eq.${pid}` }, () => refetchTimeSeries(pid))
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

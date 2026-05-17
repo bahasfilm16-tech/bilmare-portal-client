@@ -13,16 +13,19 @@ interface HeaderProps {
 const getNotifIcon = (type: string) => {
   switch (type) {
     case 'document': return <FileText className="w-3.5 h-3.5 text-[#635BFF]" />;
-    case 'finding': return <AlertTriangle className="w-3.5 h-3.5 text-[#E84E0F]" />;
+    case 'finding':
+    case 'gap': return <AlertTriangle className="w-3.5 h-3.5 text-[#E84E0F]" />;
     case 'comment': return <MessageSquare className="w-3.5 h-3.5 text-[#635BFF]" />;
+    case 'message': return <MessageSquare className="w-3.5 h-3.5 text-[#0071e3]" />;
     case 'deliverable': return <Download className="w-3.5 h-3.5 text-[#09825D]" />;
+    case 'signoff': return <CheckCircle2 className="w-3.5 h-3.5 text-[#09825D]" />;
     case 'status': return <CheckCircle2 className="w-3.5 h-3.5 text-[#09825D]" />;
     default: return <Clock className="w-3.5 h-3.5 text-[#8792A2]" />;
   }
 };
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
-  const { user, project, activities } = useAppContext();
+  const { user, project, activities, messages } = useAppContext();
   const { theme, toggleTheme } = useTheme();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -34,8 +37,19 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const notifRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const recentNotifs = activities.slice(0, 8);
-  const unreadCount = recentNotifs.filter(a => a.timestamp.getTime() > lastReadAt).length;
+  const bilmareMessages = messages
+    .filter(m => m.isBilmare)
+    .map(m => ({
+      id: `msg-${m.id}`,
+      type: 'message' as const,
+      description: m.text.length > 80 ? m.text.slice(0, 80) + '…' : m.text,
+      actor: m.sender,
+      timestamp: m.timestamp,
+    }));
+  const allNotifs = [...activities.map(a => ({ ...a, type: a.type as string })), ...bilmareMessages]
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  const recentNotifs = allNotifs.slice(0, 10);
+  const unreadCount = recentNotifs.filter(n => n.timestamp.getTime() > lastReadAt).length;
 
   const handleOpenNotif = () => {
     setIsNotifOpen(v => {
